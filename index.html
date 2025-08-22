@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script defer src="https://analytics.kahiether.com/script.js" data-website-id="6c027b7a-f2a6-4ee4-b690-8b4b501f309d"></script>
+    <script defer src="https://kizuna.kahiether.com/main.js?website-url=https://github.com/Mino75/2023-fitaovana-js&personalinfostored=no&enablemdquizz=yes&enablejssandbox=yes&enableprivacy=yes"></script>
     <title>Repository Files Explorer</title>
     <style>
         * {
@@ -185,6 +187,11 @@
                 transform: translateY(0);
             }
         }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -203,39 +210,45 @@
                 <!-- Statistiques générées dynamiquement -->
             </div>
             <div class="stats-right">
-                Repository GitHub : <a href="https://github.com/username/postman-scripts" target="_blank" style="color: #0366d6;">username/postman-scripts</a>
+                Repository GitHub : <a href="https://github.com/Mino75/postman-scripts" target="_blank" style="color: #0366d6;">Mino75/postman-scripts</a>
             </div>
         </div>
     </div>
 
     <script>
         // Configuration du repository GitHub
-        const GITHUB_CONFIG = {
-            owner: 'username',  // Remplacez par votre nom d'utilisateur GitHub
-            repo: 'postman-scripts',  // Remplacez par le nom de votre repository
-            branch: 'main'  // Ou 'master' selon votre branche principale
-        };
+        const GITHUB_USERNAME = 'Mino75';
+        const REPO_NAME = 'postman-scripts';
+        const API_URL = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents`;
 
         let fileList = []; // Liste dynamique des fichiers
 
         function getFileDescription(filename) {
             const name = filename.toLowerCase();
             
-            // Descriptions spécifiques pour des fichiers connus
-            if (name === 'readme.md' || name === 'readme') return 'Documentation du projet';
-            if (name === 'license' || name.includes('license')) return 'Licence du projet';
-            if (name.includes('template') && name.endsWith('.js')) return 'Templates de scripts JavaScript pour Postman';
+            // Descriptions spécifiques pour VOS fichiers connus
+            const knownFiles = {
+                'readme.md': 'Documentation complète du projet Postman Scripts',
+                'license': 'Licence MIT du projet - Copyrights 2022 Mino',
+                'template.js': 'Templates de scripts JavaScript pour Postman par Mino Rand',
+                'swagger_test_collection_manual.postman_collection.json': 'Collection Postman pour tests manuels de l\'API Swagger Pet Store',
+                'swagger_test_collection_automated.postman_collection.json': 'Collection Postman automatisée avec scripts de test intégrés'
+            };
+
+            // Vérifier d'abord les noms exacts (insensible à la casse)
+            for (const [key, description] of Object.entries(knownFiles)) {
+                if (name === key || name.includes(key.replace('.', ''))) {
+                    return description;
+                }
+            }
+
+            // Descriptions par patterns
             if (name.includes('postman') && name.includes('manual')) return 'Collection Postman pour tests manuels';
             if (name.includes('postman') && name.includes('automated')) return 'Collection Postman automatisée avec scripts de test';
             if (name.includes('postman') && name.endsWith('.json')) return 'Collection Postman';
-            if (name === '.gitignore') return 'Fichiers ignorés par Git';
-            if (name === 'package.json') return 'Configuration npm/Node.js';
-            if (name === 'composer.json') return 'Configuration Composer PHP';
-            if (name === 'requirements.txt') return 'Dépendances Python';
-            if (name === 'dockerfile') return 'Configuration conteneur Docker';
-            if (name.includes('docker-compose')) return 'Configuration Docker Compose';
-            if (name.startsWith('index.') && name.endsWith('.html')) return 'Page principale HTML';
-
+            if (name.includes('template') && name.endsWith('.js')) return 'Templates de scripts JavaScript pour Postman';
+            
+            // Descriptions génériques par extension
             const ext = filename.split('.').pop().toLowerCase();
             const extDescriptions = {
                 'js': 'Script JavaScript',
@@ -245,37 +258,15 @@
                 'css': 'Feuille de style CSS',
                 'txt': 'Fichier texte',
                 'py': 'Script Python',
-                'php': 'Script PHP',
-                'java': 'Fichier source Java',
-                'cpp': 'Fichier source C++',
-                'c': 'Fichier source C',
-                'rs': 'Fichier source Rust',
-                'go': 'Fichier source Go',
-                'rb': 'Script Ruby',
-                'yml': 'Configuration YAML',
-                'yaml': 'Configuration YAML',
-                'xml': 'Fichier XML',
-                'sql': 'Script SQL',
-                'sh': 'Script shell',
-                'bat': 'Script batch',
-                'ps1': 'Script PowerShell',
-                'env': 'Variables d\'environnement',
-                'log': 'Fichier de journal',
-                'png': 'Image PNG',
-                'jpg': 'Image JPEG',
-                'jpeg': 'Image JPEG',
-                'gif': 'Image GIF',
-                'svg': 'Image vectorielle SVG',
-                'pdf': 'Document PDF',
-                'zip': 'Archive ZIP',
-                'tar': 'Archive TAR',
-                'gz': 'Archive compressée'
+                'php': 'Script PHP'
             };
 
             return extDescriptions[ext] || 'Fichier';
         }
 
         function getFileType(filename) {
+            if (!filename) return 'unknown';
+            
             const name = filename.toLowerCase();
             
             if (name.includes('license')) return 'license';
@@ -285,63 +276,10 @@
             if (name === 'readme.md' || name === 'readme') return 'documentation';
             
             const ext = filename.split('.').pop().toLowerCase();
-            return ext;
+            return ext || 'unknown';
         }
 
-        async function loadRepositoryFiles() {
-            try {
-                // Afficher un indicateur de chargement temporaire
-                const fileListContainer = document.getElementById('fileList');
-                fileListContainer.innerHTML = `
-                    <div style="text-align: center; padding: 2rem; color: #6c757d;">
-                        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
-                        <p>Chargement des fichiers du repository...</p>
-                    </div>
-                `;
-
-                // Récupérer la liste des fichiers depuis l'API GitHub
-                const response = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents?ref=${GITHUB_CONFIG.branch}`);
-                
-                if (!response.ok) {
-                    throw new Error(`Repository non trouvé (${response.status})`);
-                }
-
-                const githubFiles = await response.json();
-                
-                // Filtrer seulement les fichiers (pas les dossiers) et exclure l'index.html
-                fileList = githubFiles
-                    .filter(item => item.type === 'file' && item.name !== 'index.html')
-                    .map(file => ({
-                        name: file.name,
-                        description: getFileDescription(file.name),
-                        type: getFileType(file.name),
-                        size: file.size,
-                        download_url: file.download_url
-                    }))
-                    .sort((a, b) => {
-                        // Mettre README en premier, LICENSE en second, puis ordre alphabétique
-                        if (a.name.toLowerCase().startsWith('readme')) return -1;
-                        if (b.name.toLowerCase().startsWith('readme')) return 1;
-                        if (a.name.toLowerCase().includes('license')) return -1;
-                        if (b.name.toLowerCase().includes('license')) return 1;
-                        return a.name.localeCompare(b.name);
-                    });
-
-                // Générer la liste des fichiers
-                generateFileList();
-
-            } catch (error) {
-                console.error('Erreur lors du chargement des fichiers:', error);
-                
-                const fileListContainer = document.getElementById('fileList');
-                fileListContainer.innerHTML = `
-                    <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-left: 4px solid #dc3545; margin: 1rem 0;">
-                        <strong>Erreur :</strong> Impossible de charger les fichiers du repository.<br>
-                        Vérifiez la configuration GitHub ou essayez de recharger la page.
-                    </div>
-                `;
-            }
-        }
+        function getFileIcon(filename, type) {
             const ext = filename.split('.').pop().toLowerCase();
             const name = filename.toLowerCase();
             
@@ -380,7 +318,7 @@
         }
 
         function getGitHubUrl(filename) {
-            return `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/blob/${GITHUB_CONFIG.branch}/${encodeURIComponent(filename)}`;
+            return `https://github.com/${GITHUB_USERNAME}/${REPO_NAME}/blob/main/${encodeURIComponent(filename)}`;
         }
 
         function formatFileSize(bytes) {
@@ -390,12 +328,108 @@
             return Math.round(bytes / (1024 * 1024)) + ' MB';
         }
 
+        async function loadRepositoryFiles() {
+            try {
+                // Afficher un indicateur de chargement temporaire
+                const fileListContainer = document.getElementById('fileList');
+                fileListContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #6c757d;">
+                        <div style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                        <p>Chargement des fichiers du repository...</p>
+                    </div>
+                `;
+
+                console.log('Tentative de récupération depuis:', API_URL);
+
+                // Récupérer la liste des fichiers depuis l'API GitHub
+                const response = await fetch(API_URL);
+                console.log('Statut de la réponse:', response.status);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        throw new Error('Repository non trouvé. Vérifiez le nom du propriétaire et du repository.');
+                    } else if (response.status === 403) {
+                        throw new Error('Limite de taux API GitHub atteinte. Réessayez dans quelques minutes.');
+                    } else {
+                        throw new Error(`Erreur API GitHub (${response.status}): ${response.statusText}`);
+                    }
+                }
+
+                const githubFiles = await response.json();
+                console.log('Fichiers récupérés:', githubFiles);
+                
+                if (!Array.isArray(githubFiles)) {
+                    throw new Error('Réponse API invalide - ce n\'est pas un répertoire');
+                }
+
+                // Filtrer seulement les fichiers (pas les dossiers) et exclure l'index.html
+                fileList = githubFiles
+                    .filter(item => {
+                        return item && 
+                               item.type === 'file' && 
+                               item.name && 
+                               item.name !== 'index.html' &&
+                               !item.name.startsWith('.');
+                    })
+                    .map(file => ({
+                        name: file.name,
+                        description: getFileDescription(file.name),
+                        type: getFileType(file.name),
+                        size: file.size || 0,
+                        html_url: file.html_url
+                    }))
+                    .sort((a, b) => {
+                        if (a.name.toLowerCase().startsWith('readme')) return -1;
+                        if (b.name.toLowerCase().startsWith('readme')) return 1;
+                        if (a.name.toLowerCase().includes('license')) return -1;
+                        if (b.name.toLowerCase().includes('license')) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+
+                console.log('Fichiers traités:', fileList);
+
+                if (fileList.length === 0) {
+                    fileListContainer.innerHTML = `
+                        <div style="background: #fff3cd; color: #856404; padding: 1rem; border-left: 4px solid #ffc107; margin: 1rem 0;">
+                            <strong>Aucun fichier trouvé</strong><br>
+                            Le repository semble vide ou ne contient que des dossiers.
+                        </div>
+                    `;
+                    return;
+                }
+
+                generateFileList();
+
+            } catch (error) {
+                console.error('Erreur détaillée:', error);
+                
+                const fileListContainer = document.getElementById('fileList');
+                fileListContainer.innerHTML = `
+                    <div style="background: #f8d7da; color: #721c24; padding: 1rem; border-left: 4px solid #dc3545; margin: 1rem 0;">
+                        <strong>Erreur :</strong> ${error.message}<br><br>
+                        <details style="margin-top: 0.5rem;">
+                            <summary style="cursor: pointer;">Configuration actuelle</summary>
+                            <pre style="margin-top: 0.5rem; font-size: 0.8rem;">
+Username: ${GITHUB_USERNAME}
+Repository: ${REPO_NAME}
+URL: ${API_URL}
+                            </pre>
+                        </details>
+                        <br>
+                        <button onclick="loadRepositoryFiles()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">
+                            Réessayer
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
         function generateFileList() {
             const fileListContainer = document.getElementById('fileList');
             
             const filesHTML = fileList.map(file => {
                 const iconClass = getFileIcon(file.name, file.type);
-                const githubUrl = getGitHubUrl(file.name);
+                const githubUrl = file.html_url || getGitHubUrl(file.name);
                 const fileSize = file.size ? formatFileSize(file.size) : '';
                 
                 return `
@@ -421,8 +455,10 @@
 
             // Mettre à jour le lien GitHub dans les stats
             const githubLink = document.querySelector('.stats-right a');
-            githubLink.href = `https://github.com/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`;
-            githubLink.textContent = `${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}`;
+            if (githubLink) {
+                githubLink.href = `https://github.com/${GITHUB_USERNAME}/${REPO_NAME}`;
+                githubLink.textContent = `${GITHUB_USERNAME}/${REPO_NAME}`;
+            }
         }
 
         // Charger les fichiers au chargement de la page
