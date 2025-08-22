@@ -1,1 +1,479 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Repository Files Explorer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .refresh-section {
+            background: #f8f9fa;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+            text-align: center;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .refresh-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem 2rem;
+            border-left: 4px solid #dc3545;
+            margin: 1rem;
+        }
+
+        .file-list {
+            padding: 2rem;
+        }
+
+        .file-item {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .file-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-color: #007bff;
+        }
+
+        .file-item:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(45deg, #007bff, #28a745);
+            transform: scaleY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .file-item:hover:before {
+            transform: scaleY(1);
+        }
+
+        .file-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .file-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .file-size {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-right: 1rem;
+        }
+
+        .file-description {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-left: 36px;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-content {
+            display: none;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .file-content.show {
+            display: block;
+        }
+
+        .file-content pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .toggle-indicator {
+            margin-left: auto;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .file-item.open .toggle-indicator {
+            transform: rotate(180deg);
+        }
+
+        .stats {
+            background: #f8f9fa;
+            padding: 1rem 2rem;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .stats-left {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+
+        .stats-right {
+            color: #6c757d;
+            font-size: 0.8rem;
+        }
+
+        /* Icônes */
+        .icon-js { fill: #f7df1e; }
+        .icon-json { fill: #00d8ff; }
+        .icon-md { fill: #0366d6; }
+        .icon-html { fill: #e34f26; }
+        .icon-css { fill: #1572b6; }
+        .icon-txt { fill: #6c757d; }
+        .icon-postman { fill: #ff6c37; }
+        .icon-license { fill: #28a745; }
+        .icon-default { fill: #495057; }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 1rem 2rem;
+            border-left: 4px solid #ffc107;
+            margin: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📦 Repository Files</h1>
+            <p>Tous les fichiers du repository courant</p>
+        </div>
+
+        <div class="refresh-section">
+            <button class="refresh-btn" onclick="loadFiles()">🔄 Actualiser la liste des fichiers</button>
+        </div>
+
+        <div id="content">
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Chargement des fichiers du repository...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Liste des fichiers à inclure dans l'affichage
+        const fileList = [
+            'README.md',
+            'LICENSE',
+            'Template.js',
+            'Swagger_Test_collection_manual.postman_collection.json',
+            'Swagger_Test_collection_Automated.postman_collection.json'
+        ];
+
+        let currentFiles = [];
+
+        function getFileIcon(filename) {
+            const ext = filename.split('.').pop().toLowerCase();
+            const name = filename.toLowerCase();
+            
+            if (name.includes('postman') && ext === 'json') return 'icon-postman';
+            if (name === 'license' || name.includes('license')) return 'icon-license';
+            
+            const iconMap = {
+                'js': 'icon-js',
+                'json': 'icon-json',
+                'md': 'icon-md',
+                'html': 'icon-html',
+                'css': 'icon-css',
+                'txt': 'icon-txt'
+            };
+            return iconMap[ext] || 'icon-default';
+        }
+
+        function getFileDescription(filename) {
+            const name = filename.toLowerCase();
+            
+            // Descriptions spécifiques pour des fichiers connus
+            if (name === 'readme.md' || name === 'readme') return 'Documentation du projet';
+            if (name === 'license' || name.includes('license')) return 'Licence du projet';
+            if (name.includes('template') && name.endsWith('.js')) return 'Templates de scripts JavaScript pour Postman';
+            if (name.includes('postman') && name.includes('manual')) return 'Collection Postman pour tests manuels';
+            if (name.includes('postman') && name.includes('automated')) return 'Collection Postman automatisée avec scripts de test';
+            if (name.includes('postman') && name.endsWith('.json')) return 'Collection Postman';
+
+            const ext = filename.split('.').pop().toLowerCase();
+            const extDescriptions = {
+                'js': 'Script JavaScript',
+                'json': 'Fichier de données JSON',
+                'md': 'Documentation Markdown',
+                'html': 'Page web HTML',
+                'css': 'Feuille de style CSS',
+                'txt': 'Fichier texte',
+                'py': 'Script Python',
+                'php': 'Script PHP'
+            };
+
+            return extDescriptions[ext] || 'Fichier';
+        }
+
+        function createFileIcon(iconClass) {
+            const icons = {
+                'icon-js': 'M3,3H21V21H3V3M7.73,18.04C8.13,18.89 8.92,19.59 10.27,19.59C11.77,19.59 12.8,18.79 12.8,17.04V11.26H11.1V17C11.1,17.86 10.75,18.08 10.2,18.08C9.62,18.08 9.38,17.68 9.11,17.21L7.73,18.04M13.71,17.86C14.21,18.84 15.22,19.59 16.8,19.59C18.4,19.59 19.6,18.76 19.6,17.23C19.6,15.82 18.79,15.19 17.35,14.57L16.93,14.39C16.2,14.08 15.89,13.87 15.89,13.37C15.89,12.96 16.2,12.64 16.7,12.64C17.18,12.64 17.5,12.85 17.79,13.37L19.1,12.5C18.55,11.54 17.77,11.17 16.7,11.17C15.19,11.17 14.22,12.13 14.22,13.4C14.22,14.78 15.03,15.43 16.25,15.95L16.67,16.13C17.45,16.47 17.91,16.68 17.91,17.26C17.91,17.74 17.46,18.09 16.76,18.09C15.93,18.09 15.45,17.66 15.09,17.06L13.71,17.86Z',
+                'icon-json': 'M5,3H7V5H5V10A2,2 0 0,1 3,12A2,2 0 0,1 5,14V19H7V21H5C3.93,20.97 3.03,20.07 3,19V15A2,2 0 0,0 1,13H0V11H1A2,2 0 0,0 3,9V5C3.03,3.93 3.93,3.03 5,3M19,3C20.07,3.03 20.97,3.93 21,5V9A2,2 0 0,0 23,11H24V13H23A2,2 0 0,0 21,15V19C20.97,20.07 20.07,20.97 19,21H17V19H19V14A2,2 0 0,1 21,12A2,2 0 0,1 19,10V5H17V3H19Z',
+                'icon-md': 'M14,3V5H17.59L7.76,14.83L9.17,16.24L19,6.41V10H21V3M19,19H5V5H12V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V12H19V19Z',
+                'icon-postman': 'M13.527.099C6.955-.744.942 3.9.099 10.473c-.843 6.572 3.8 12.584 10.373 13.428 6.573.843 12.587-3.801 13.428-10.374C24.744 6.955 20.101.943 13.527.099zM12 2.25c5.385 0 9.75 4.365 9.75 9.75s-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12 6.615 2.25 12 2.25z',
+                'icon-license': 'M9,10H7V12H9V10M13,10H11V12H13V10M17,10H15V12H17V10M19,3H18V1H16V3H8V1H6V3H5C3.89,3 3,3.9 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.9 20.1,3 19,3M19,19H5V8H19V19Z',
+                'icon-default': 'M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z'
+            };
+            
+            const path = icons[iconClass] || icons['icon-default'];
+            return `<svg class="file-icon ${iconClass}" viewBox="0 0 24 24"><path d="${path}"/></svg>`;
+        }
+
+        async function loadFileContent(filename) {
+            try {
+                const response = await fetch(filename);
+                if (response.ok) {
+                    return await response.text();
+                } else {
+                    return `Erreur: Impossible de charger le fichier (${response.status})`;
+                }
+            } catch (error) {
+                return `Erreur: ${error.message}`;
+            }
+        }
+
+        async function loadFiles() {
+            // Afficher le chargement
+            document.getElementById('content').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Chargement des fichiers du repository...</p>
+                </div>
+            `;
+
+            // Désactiver le bouton
+            const btn = document.querySelector('.refresh-btn');
+            btn.disabled = true;
+            btn.textContent = 'Chargement...';
+
+            currentFiles = [];
+            
+            // Charger chaque fichier
+            for (const filename of fileList) {
+                try {
+                    const content = await loadFileContent(filename);
+                    const fileSize = new Blob([content]).size;
+                    
+                    currentFiles.push({
+                        name: filename,
+                        content: content,
+                        size: fileSize,
+                        lastModified: new Date().toISOString()
+                    });
+                } catch (error) {
+                    console.warn(`Impossible de charger ${filename}:`, error);
+                }
+            }
+
+            // Afficher les fichiers
+            displayFiles();
+
+            // Réactiver le bouton
+            btn.disabled = false;
+            btn.textContent = '🔄 Actualiser la liste des fichiers';
+        }
+
+        function formatFileSize(bytes) {
+            if (!bytes) return '';
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+            return Math.round(bytes / (1024 * 1024)) + ' MB';
+        }
+
+        function displayFiles() {
+            const totalFiles = currentFiles.length;
+            const totalSize = currentFiles.reduce((sum, file) => sum + (file.size || 0), 0);
+
+            if (totalFiles === 0) {
+                document.getElementById('content').innerHTML = `
+                    <div class="warning">
+                        <strong>Aucun fichier trouvé :</strong> Les fichiers du repository ne sont pas accessibles ou n'existent pas dans le répertoire courant.
+                    </div>
+                `;
+                return;
+            }
+
+            const fileListHTML = currentFiles.map((file, index) => `
+                <div class="file-item" onclick="toggleFile(this, ${index})">
+                    <div class="file-header">
+                        ${createFileIcon(getFileIcon(file.name))}
+                        <span class="file-name">${file.name}</span>
+                        <span class="file-size">${formatFileSize(file.size)}</span>
+                        <span class="toggle-indicator">▼</span>
+                    </div>
+                    <div class="file-description">${getFileDescription(file.name)}</div>
+                    <div class="file-content" id="file-${index}">
+                        <pre>${escapeHtml(file.content)}</pre>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('content').innerHTML = `
+                <div class="file-list">
+                    ${fileListHTML}
+                </div>
+                <div class="stats">
+                    <div class="stats-left">
+                        Total : ${totalFiles} fichier${totalFiles > 1 ? 's' : ''} | Taille : ${formatFileSize(totalSize)}
+                    </div>
+                    <div class="stats-right">
+                        Dernière actualisation : ${new Date().toLocaleString('fr-FR')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleFile(element, fileIndex) {
+            const content = document.getElementById(`file-${fileIndex}`);
+            const isOpen = element.classList.contains('open');
+            
+            // Fermer tous les autres fichiers
+            document.querySelectorAll('.file-item').forEach(item => {
+                item.classList.remove('open');
+            });
+            document.querySelectorAll('.file-content').forEach(content => {
+                content.classList.remove('show');
+            });
+            
+            // Ouvrir le fichier cliqué s'il n'était pas déjà ouvert
+            if (!isOpen) {
+                element.classList.add('open');
+                content.classList.add('show');
+            }
+        }
+
+        // Charger les fichiers au démarrage
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFiles();
+        });
+    </script>
+</body>
+</html>
